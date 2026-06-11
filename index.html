@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Animals"/>
+<meta name="theme-color" content="#FFB347"/>
+<link rel="manifest" href="./manifest.json"/>
+<link rel="apple-touch-icon" href="./icon-192.png"/>
+<title>Animal Friends</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet"/>
+<style>
+  :root { --safe-top: env(safe-area-inset-top, 0px); --safe-bot: env(safe-area-inset-bottom, 0px); }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: #fff9f0; font-family: 'Nunito', sans-serif; overflow: hidden; }
+
+  #app { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── Grid view ── */
+  #grid-view { display: flex; flex-direction: column; height: 100%; }
+  .header { text-align: center; padding: calc(var(--safe-top) + 14px) 16px 10px; flex-shrink: 0; }
+  .title { font-size: clamp(24px, 7vw, 36px); font-weight: 900; color: #2d2d2d; }
+  .subtitle { font-size: clamp(13px, 3.5vw, 17px); color: #aaa; font-weight: 700; margin-top: 2px; }
+
+  .pills-wrap { padding: 0 12px 8px; flex-shrink: 0; overflow-x: auto; scrollbar-width: none; }
+  .pills-wrap::-webkit-scrollbar { display: none; }
+  .pills { display: flex; gap: 8px; width: max-content; }
+  .pill {
+    border: 2px solid #ddd; background: #fff; border-radius: 50px;
+    padding: 7px 15px; font-size: 13px; font-weight: 800; font-family: 'Nunito', sans-serif;
+    cursor: pointer; color: #777; transition: all .15s; white-space: nowrap;
+  }
+  .pill.on { background: #333; color: #fff; border-color: #333; }
+
+  .search-wrap { padding: 0 12px 10px; flex-shrink: 0; }
+  .search-box {
+    width: 100%; border: 2px solid #e8e8e8; border-radius: 16px;
+    padding: 10px 16px; font-size: 16px; font-family: 'Nunito', sans-serif;
+    font-weight: 700; color: #444; outline: none; background: #fff;
+  }
+  .search-box:focus { border-color: #bbb; }
+
+  .grid-scroll { flex: 1; overflow-y: auto; padding: 0 12px calc(var(--safe-bot) + 16px); -webkit-overflow-scrolling: touch; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; padding-top: 2px; }
+
+  .card {
+    border-radius: 22px; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 6px; padding: 16px 8px 12px;
+    border: 3px solid rgba(255,255,255,.6); box-shadow: 0 3px 12px rgba(0,0,0,.1);
+    cursor: pointer; user-select: none; transition: transform .12s, box-shadow .12s;
+  }
+  .card:active { transform: scale(0.93); }
+  .card.bounce { animation: bounce .4s ease; }
+  .card-emoji { font-size: clamp(30px, 9vw, 46px); line-height: 1; }
+  .card-name { font-size: clamp(11px, 3vw, 14px); font-weight: 800; color: #333; text-align: center; line-height: 1.2; }
+
+  .empty { grid-column: 1/-1; text-align: center; padding: 48px 0; font-size: 20px; color: #bbb; font-weight: 700; }
+
+  @keyframes bounce {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.18) rotate(-4deg); }
+    65% { transform: scale(1.12) rotate(3deg); }
+    100% { transform: scale(1); }
+  }
+
+  /* ── Detail view ── */
+  #detail-view {
+    display: none; flex-direction: column; align-items: center;
+    gap: 16px; padding: calc(var(--safe-top) + 18px) 18px calc(var(--safe-bot) + 32px);
+    height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  #detail-view.visible { display: flex; }
+  #grid-view.hidden { display: none; }
+
+  .back-btn {
+    align-self: flex-start; background: rgba(255,255,255,.88); border: none;
+    border-radius: 50px; padding: 10px 22px; font-size: 17px; font-weight: 800;
+    font-family: 'Nunito', sans-serif; cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,.12); color: #444;
+  }
+  .back-btn:active { transform: scale(.95); }
+
+  .det-name { font-size: clamp(28px, 9vw, 46px); font-weight: 900; color: #1a1a1a; text-align: center; }
+  .det-img {
+    border-radius: 22px; object-fit: cover; width: 100%;
+    max-height: min(46vw, 290px); display: block;
+    box-shadow: 0 6px 28px rgba(0,0,0,.18);
+  }
+  .snd-btn {
+    border: none; border-radius: 50px; padding: 15px 34px;
+    font-size: 21px; font-weight: 900; font-family: 'Nunito', sans-serif;
+    cursor: pointer; color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.2);
+  }
+  .snd-btn:active { transform: scale(.95); }
+
+  .fact-box {
+    background: rgba(255,255,255,.78); border-radius: 18px; padding: 14px 20px;
+    font-size: clamp(14px, 4vw, 17px); font-weight: 700; color: #333;
+    text-align: center; line-height: 1.5; width: 100%;
+    box-shadow: 0 2px 10px rgba(0,0,0,.08); min-height: 52px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── Sound pop ── */
+  .pop {
+    position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%);
+    font-size: clamp(50px, 14vw, 100px); font-weight: 900; color: #fff;
+    text-shadow: 0 4px 24px rgba(0,0,0,.35); pointer-events: none;
+    animation: popFade 1.4s ease forwards; z-index: 999;
+    font-family: 'Nunito', sans-serif; white-space: nowrap;
+  }
+  @keyframes popFade {
+    0% { opacity: 0; transform: translate(-50%,-50%) scale(.4); }
+    20% { opacity: 1; transform: translate(-50%,-60%) scale(1.1); }
+    55% { opacity: 1; transform: translate(-50%,-64%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%,-80%) scale(.88); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- GRID VIEW -->
+  <div id="grid-view">
+    <div class="header">
+      <div class="title">🐾 Animal Friends</div>
+      <div class="subtitle">Tap any animal!</div>
+    </div>
+    <div class="pills-wrap"><div class="pills" id="pills"></div></div>
+    <div class="search-wrap">
+      <input class="search-box" id="search" placeholder="🔍 Find an animal…" autocomplete="off" autocorrect="off"/>
+    </div>
+    <div class="grid-scroll"><div class="grid" id="grid"></div></div>
+  </div>
+
+  <!-- DETAIL VIEW -->
+  <div id="detail-view">
+    <button class="back-btn" id="back-btn">← Back</button>
+    <div class="det-name" id="det-name"></div>
+    <img class="det-img" id="det-img" alt=""/>
+    <button class="snd-btn" id="snd-btn"></button>
+    <div class="fact-box" id="fact-box">✨ loading fun fact…</div>
+  </div>
+
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+const ANIMALS = [
+  // Farm
+  {name:"Cat",       emoji:"🐱",color:"#FFB347",sound:"Meow!",   wave:"sine",    freq:[780,580,680],dur:0.8,  cat:"Farm",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Cat_November_2010-1a.jpg/600px-Cat_November_2010-1a.jpg"},
+  {name:"Dog",       emoji:"🐶",color:"#87CEEB",sound:"Woof!",   wave:"saw",     freq:[320,420,320],dur:0.7,  cat:"Farm",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/YellowLabradorLooking_new.jpg/600px-YellowLabradorLooking_new.jpg"},
+  {name:"Cow",       emoji:"🐄",color:"#98D8B0",sound:"Moo!",    wave:"sine",    freq:[160,130,150],dur:1.2,  cat:"Farm",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Cow_on_a_texas_farm.jpg/600px-Cow_on_a_texas_farm.jpg"},
+  {name:"Pig",       emoji:"🐷",color:"#FFB6C1",sound:"Oink!",   wave:"sine",    freq:[460,510,480],dur:0.6,  cat:"Farm",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Pig_USDA01c0116.jpg/600px-Pig_USDA01c0116.jpg"},
+  {name:"Sheep",     emoji:"🐑",color:"#EFEFEF",sound:"Baa!",    wave:"sine",    freq:[360,310,330],dur:0.9,  cat:"Farm",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Ovis_orientalis_aries_%27Skudde%27.jpg/600px-Ovis_orientalis_aries_%27Skudde%27.jpg"},
+  {name:"Horse",     emoji:"🐴",color:"#DEB887",sound:"Neigh!",  wave:"saw",     freq:[500,620,420],dur:1.0,  cat:"Farm",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Nokota_Horses_cropped.jpg/600px-Nokota_Horses_cropped.jpg"},
+  {name:"Goat",      emoji:"🐐",color:"#D4EDDA",sound:"Meh!",    wave:"sine",    freq:[420,480,440],dur:0.7,  cat:"Farm",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Hausziege_04.jpg/600px-Hausziege_04.jpg"},
+  {name:"Donkey",    emoji:"🫏",color:"#C8B9A0",sound:"Hee-Haw!",wave:"saw",     freq:[280,180,260],dur:1.2,  cat:"Farm",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Donkey_1_arp_750px.jpg/600px-Donkey_1_arp_750px.jpg"},
+  {name:"Rabbit",    emoji:"🐰",color:"#F9D5E5",sound:"Squeak!", wave:"sine",    freq:[900,1000,950],dur:0.4, cat:"Farm",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Oryctolagus_cuniculus_Rcdo.jpg/600px-Oryctolagus_cuniculus_Rcdo.jpg"},
+  {name:"Chicken",   emoji:"🐔",color:"#FFF0A0",sound:"Cluck!",  wave:"square",  freq:[700,800,700],dur:0.5,  cat:"Farm",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Chicken_March_2009-1.jpg/600px-Chicken_March_2009-1.jpg"},
+  {name:"Rooster",   emoji:"🐓",color:"#FF9B8A",sound:"Cock-a-doo!",wave:"saw", freq:[600,900,700],dur:1.0,  cat:"Farm",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Rooster-2769352.jpg/600px-Rooster-2769352.jpg"},
+  {name:"Turkey",    emoji:"🦃",color:"#C97D4E",sound:"Gobble!", wave:"saw",     freq:[400,350,380],dur:0.8,  cat:"Farm",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Meleagris_gallopavo_Wild_Turkey.jpg/600px-Meleagris_gallopavo_Wild_Turkey.jpg"},
+  {name:"Goose",     emoji:"🪿",color:"#B5D5C5",sound:"Honk!",   wave:"square",  freq:[550,500,530],dur:0.6,  cat:"Farm",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Anser_anser_1_(Piotr_Kuczynski).jpg/600px-Anser_anser_1_(Piotr_Kuczynski).jpg"},
+  // Wild
+  {name:"Lion",      emoji:"🦁",color:"#F4A460",sound:"Roar!",   wave:"saw",     freq:[90,70,80],   dur:1.4,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Lion_waiting_in_Namibia.jpg/600px-Lion_waiting_in_Namibia.jpg"},
+  {name:"Tiger",     emoji:"🐯",color:"#FF8C00",sound:"Growl!",  wave:"saw",     freq:[100,80,90],  dur:1.2,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Bengal_tiger_(Panthera_tigris_tigris)_female_3_crop.jpg/600px-Bengal_tiger_(Panthera_tigris_tigris)_female_3_crop.jpg"},
+  {name:"Elephant",  emoji:"🐘",color:"#B0C4DE",sound:"Trumpet!",wave:"saw",     freq:[210,190,260],dur:1.2,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/African_Bush_Elephant.jpg/600px-African_Bush_Elephant.jpg"},
+  {name:"Giraffe",   emoji:"🦒",color:"#F5CBA7",sound:"Hum!",    wave:"sine",    freq:[180,160,170],dur:1.0,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Giraffe_Mikumi_National_Park.jpg/600px-Giraffe_Mikumi_National_Park.jpg"},
+  {name:"Zebra",     emoji:"🦓",color:"#D5D5D5",sound:"Bark!",   wave:"square",  freq:[380,420,390],dur:0.7,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Plains_Zebra_Equus_quagga.jpg/600px-Plains_Zebra_Equus_quagga.jpg"},
+  {name:"Gorilla",   emoji:"🦍",color:"#909090",sound:"Grunt!",  wave:"saw",     freq:[180,150,170],dur:0.9,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Silverback_Gorilla.JPG/600px-Silverback_Gorilla.JPG"},
+  {name:"Monkey",    emoji:"🐒",color:"#C4A35A",sound:"Hoot!",   wave:"sine",    freq:[600,700,650],dur:0.7,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Capuchin_Costa_Rica.jpg/600px-Capuchin_Costa_Rica.jpg"},
+  {name:"Hippo",     emoji:"🦛",color:"#B5A4C4",sound:"Grunt!",  wave:"saw",     freq:[140,120,130],dur:1.0,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Hippo_at_SF_zoo.jpg/600px-Hippo_at_SF_zoo.jpg"},
+  {name:"Rhino",     emoji:"🦏",color:"#A8A8A8",sound:"Snort!",  wave:"saw",     freq:[200,180,195],dur:0.8,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/White_Rhino.jpg/600px-White_Rhino.jpg"},
+  {name:"Leopard",   emoji:"🐆",color:"#F0C040",sound:"Snarl!",  wave:"saw",     freq:[130,110,120],dur:1.0,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Leopard_africa.jpg/600px-Leopard_africa.jpg"},
+  {name:"Cheetah",   emoji:"🐈",color:"#E8B86D",sound:"Chirp!",  wave:"sine",    freq:[700,750,720],dur:0.6,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Cheetah_(Acinonyx_jubatus)_female_2.jpg/600px-Cheetah_(Acinonyx_jubatus)_female_2.jpg"},
+  {name:"Wolf",      emoji:"🐺",color:"#9EAEC0",sound:"Howl!",   wave:"sine",    freq:[400,600,350],dur:1.5,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Wolf_at_Lakota_Wolf_Preserve.jpg/600px-Wolf_at_Lakota_Wolf_Preserve.jpg"},
+  {name:"Bear",      emoji:"🐻",color:"#C4956A",sound:"Growl!",  wave:"saw",     freq:[120,100,110],dur:1.2,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/2010-kodiak-bear-1.jpg/600px-2010-kodiak-bear-1.jpg"},
+  {name:"Fox",       emoji:"🦊",color:"#E8834C",sound:"Yip!",    wave:"sine",    freq:[650,700,660],dur:0.5,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Vulpes_vulpes_ssp_fulvus.jpg/600px-Vulpes_vulpes_ssp_fulvus.jpg"},
+  {name:"Deer",      emoji:"🦌",color:"#C8A870",sound:"Bleat!",  wave:"sine",    freq:[500,550,520],dur:0.7,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Deer_staring_(4263537547).jpg/600px-Deer_staring_(4263537547).jpg"},
+  {name:"Kangaroo",  emoji:"🦘",color:"#D4956A",sound:"Grunt!",  wave:"saw",     freq:[300,280,290],dur:0.8,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Kangaroo_adaptive_radiation.jpg/600px-Kangaroo_adaptive_radiation.jpg"},
+  {name:"Koala",     emoji:"🐨",color:"#C8D8C8",sound:"Bellow!", wave:"saw",     freq:[80,70,75],   dur:1.5,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Koala_climbing_tree.jpg/600px-Koala_climbing_tree.jpg"},
+  {name:"Panda",     emoji:"🐼",color:"#E8E8E8",sound:"Bleat!",  wave:"sine",    freq:[350,380,360],dur:0.8,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Grosser_Panda.JPG/600px-Grosser_Panda.JPG"},
+  {name:"Camel",     emoji:"🐪",color:"#E8C87A",sound:"Grunt!",  wave:"saw",     freq:[220,200,210],dur:0.9,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Camels_in_Jordan.jpg/600px-Camels_in_Jordan.jpg"},
+  {name:"Moose",     emoji:"🫎",color:"#8B7355",sound:"Bellow!", wave:"saw",     freq:[130,110,120],dur:1.2,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Bull_moose_superior_np.jpg/600px-Bull_moose_superior_np.jpg"},
+  {name:"Jaguar",    emoji:"🐆",color:"#D4A030",sound:"Growl!",  wave:"saw",     freq:[110,95,105], dur:1.1,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Standing_jaguar.jpg/600px-Standing_jaguar.jpg"},
+  {name:"Sloth",     emoji:"🦥",color:"#A89070",sound:"Squeak!", wave:"sine",    freq:[500,520,510],dur:0.8,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Bradypus.jpg/600px-Bradypus.jpg"},
+  {name:"Raccoon",   emoji:"🦝",color:"#808080",sound:"Chitter!",wave:"square",  freq:[600,680,640],dur:0.6,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Raccoon_(Procyon_lotor)_2.jpg/600px-Raccoon_(Procyon_lotor)_2.jpg"},
+  {name:"Bison",     emoji:"🐂",color:"#8B6040",sound:"Grunt!",  wave:"saw",     freq:[120,100,110],dur:1.2,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/American_bison_k5680-1.jpg/600px-American_bison_k5680-1.jpg"},
+  {name:"Polar Bear",emoji:"🐻‍❄️",color:"#E8F0F8",sound:"Growl!", wave:"saw",    freq:[110,95,105], dur:1.3,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Polar_Bear_-_Alaska_(cropped).jpg/600px-Polar_Bear_-_Alaska_(cropped).jpg"},
+  {name:"Arctic Fox",emoji:"🦊",color:"#F0F4F8",sound:"Yip!",    wave:"sine",    freq:[700,750,720],dur:0.5,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/A_snowy_white_arctic_fox.jpg/600px-A_snowy_white_arctic_fox.jpg"},
+  {name:"Reindeer",  emoji:"🦌",color:"#C8A870",sound:"Grunt!",  wave:"saw",     freq:[300,280,290],dur:0.8,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Caribou_with_velvet_antlers.jpg/600px-Caribou_with_velvet_antlers.jpg"},
+  {name:"Badger",    emoji:"🦡",color:"#808080",sound:"Growl!",  wave:"saw",     freq:[250,230,240],dur:0.9,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Badger-badger.jpg/600px-Badger-badger.jpg"},
+  {name:"Wombat",    emoji:"🐾",color:"#A89070",sound:"Grunt!",  wave:"saw",     freq:[300,280,290],dur:0.8,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Vombatus_ursinus_-Maria_Island_National_Park.jpg/600px-Vombatus_ursinus_-Maria_Island_National_Park.jpg"},
+  {name:"Meerkat",   emoji:"🐾",color:"#D4B078",sound:"Bark!",   wave:"saw",     freq:[700,750,720],dur:0.5,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Meerkat_(Suricata_suricatta)_Tswalu.jpg/600px-Meerkat_(Suricata_suricatta)_Tswalu.jpg"},
+  {name:"Mandrill",  emoji:"🐒",color:"#8060A8",sound:"Bark!",   wave:"saw",     freq:[400,450,420],dur:0.7,  cat:"Wild",  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Mandrill_Mandrillus_sphinx.jpg/600px-Mandrill_Mandrillus_sphinx.jpg"},
+  // Ocean
+  {name:"Dolphin",   emoji:"🐬",color:"#5BC8F5",sound:"Click!",  wave:"sine",    freq:[1200,1400,1300],dur:0.4,cat:"Ocean",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Tursiops_truncatus_01.jpg/600px-Tursiops_truncatus_01.jpg"},
+  {name:"Whale",     emoji:"🐋",color:"#4A90D9",sound:"Song!",   wave:"sine",    freq:[60,80,50],   dur:2.0,  cat:"Ocean", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Humpback_whale_jump.jpg/600px-Humpback_whale_jump.jpg"},
+  {name:"Shark",     emoji:"🦈",color:"#7BAFD4",sound:"Splash!", wave:"saw",     freq:[100,90,95],  dur:0.8,  cat:"Ocean", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/White_shark.jpg/600px-White_shark.jpg"},
+  {name:"Crab",      emoji:"🦀",color:"#E8604C",sound:"Click!",  wave:"square",  freq:[800,900,850],dur:0.4,  cat:"Ocean", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Crab_on_a_beach_in_Scotland.JPG/600px-Crab_on_a_beach_in_Scotland.JPG"},
+  {name:"Octopus",   emoji:"🐙",color:"#D45088",sound:"Squirt!", wave:"sine",    freq:[500,480,490],dur:0.5,  cat:"Ocean", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Day_Octopus_Bali_crop.jpg/600px-Day_Octopus_Bali_crop.jpg"},
+  {name:"Seal",      emoji:"🦭",color:"#A8C0D0",sound:"Arf!",    wave:"saw",     freq:[450,500,470],dur:0.6,  cat:"Ocean", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Seal_on_Ytri_Tunga_in_Snaefellsnes.jpg/600px-Seal_on_Ytri_Tunga_in_Snaefellsnes.jpg"},
+  {name:"Penguin",   emoji:"🐧",color:"#2C3E50",sound:"Squawk!", wave:"square",  freq:[600,650,620],dur:0.5,  cat:"Ocean", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/South_Shetland-2016-Deception_Island%E2%80%93Chinstrap_penguin_(Pygoscelis_antarctica)_04.jpg/600px-South_Shetland-2016-Deception_Island%E2%80%93Chinstrap_penguin_(Pygoscelis_antarctica)_04.jpg"},
+  {name:"Turtle",    emoji:"🐢",color:"#5D9B5D",sound:"Hiss!",   wave:"sine",    freq:[200,190,195],dur:0.9,  cat:"Ocean", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Florida_Box_Turtle_Digon3_re-edited.jpg/600px-Florida_Box_Turtle_Digon3_re-edited.jpg"},
+  {name:"Narwhal",   emoji:"🐋",color:"#80C8E0",sound:"Click!",  wave:"sine",    freq:[1000,1200,1100],dur:0.5,cat:"Ocean",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Narwal_2.jpg/600px-Narwal_2.jpg"},
+  {name:"Lobster",   emoji:"🦞",color:"#E84040",sound:"Snap!",   wave:"square",  freq:[900,1000,950],dur:0.3, cat:"Ocean", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Lobster_Penobscot.JPG/600px-Lobster_Penobscot.JPG"},
+  {name:"Walrus",    emoji:"🦭",color:"#8098B0",sound:"Grunt!",  wave:"saw",     freq:[160,140,150],dur:1.0,  cat:"Ocean", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Odobenus_rosmarus_(Jomaza).jpg/600px-Odobenus_rosmarus_(Jomaza).jpg"},
+  // Birds
+  {name:"Duck",      emoji:"🦆",color:"#FFD700",sound:"Quack!",  wave:"square",  freq:[580,650,600],dur:0.5,  cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Mallard-Mindaugas_Urbonas.jpg/600px-Mallard-Mindaugas_Urbonas.jpg"},
+  {name:"Owl",       emoji:"🦉",color:"#CD853F",sound:"Hoot!",   wave:"sine",    freq:[260,240,260],dur:0.8,  cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/CWon6.jpg/600px-CWon6.jpg"},
+  {name:"Parrot",    emoji:"🦜",color:"#50C878",sound:"Squawk!", wave:"saw",     freq:[700,800,750],dur:0.6,  cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Ara_macao_-on_a_small_island%2C_near_Carrillo%2C_Costa_Rica-8.jpg/600px-Ara_macao_-on_a_small_island%2C_near_Carrillo%2C_Costa_Rica-8.jpg"},
+  {name:"Eagle",     emoji:"🦅",color:"#8B6914",sound:"Screech!",wave:"saw",     freq:[900,1100,950],dur:0.8, cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Bald_eagle_portrait_7.jpg/600px-Bald_eagle_portrait_7.jpg"},
+  {name:"Flamingo",  emoji:"🦩",color:"#FFB7C5",sound:"Honk!",   wave:"square",  freq:[500,480,490],dur:0.6,  cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Caribbean_flamingo_Phoenicopterus_ruber.jpg/600px-Caribbean_flamingo_Phoenicopterus_ruber.jpg"},
+  {name:"Peacock",   emoji:"🦚",color:"#00868B",sound:"Scream!", wave:"saw",     freq:[800,900,820],dur:0.9,  cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Peacock_Plumage.jpg/600px-Peacock_Plumage.jpg"},
+  {name:"Swan",      emoji:"🦢",color:"#F0F0F0",sound:"Hiss!",   wave:"sine",    freq:[320,300,310],dur:0.8,  cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Cygnus_olor_-_Swan_on_a_lake.jpg/600px-Cygnus_olor_-_Swan_on_a_lake.jpg"},
+  {name:"Robin",     emoji:"🐦",color:"#C44820",sound:"Tweet!",  wave:"sine",    freq:[1100,1300,1200],dur:0.4,cat:"Birds",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Erithacus_rubecula_with_cocked_head.jpg/600px-Erithacus_rubecula_with_cocked_head.jpg"},
+  {name:"Puffin",    emoji:"🐦",color:"#1A1A2E",sound:"Growl!",  wave:"saw",     freq:[300,280,290],dur:0.8,  cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Fratercula_arctica_on_Skomer.jpg/600px-Fratercula_arctica_on_Skomer.jpg"},
+  {name:"Kookaburra",emoji:"🐦",color:"#C89050",sound:"Laugh!",  wave:"saw",     freq:[600,800,700],dur:1.0,  cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Laughing_kookaburra_dec08_01.jpg/600px-Laughing_kookaburra_dec08_01.jpg"},
+  {name:"Crow",      emoji:"🐦",color:"#333333",sound:"Caw!",    wave:"square",  freq:[450,400,430],dur:0.5,  cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Corvus_brachyrhynchos_Crown_1700px.jpg/600px-Corvus_brachyrhynchos_Crown_1700px.jpg"},
+  {name:"Pigeon",    emoji:"🐦",color:"#B0A0C0",sound:"Coo!",    wave:"sine",    freq:[320,300,310],dur:0.9,  cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Rock_pigeon_Columba_livia.jpg/600px-Rock_pigeon_Columba_livia.jpg"},
+  {name:"Hummingbird",emoji:"🐦",color:"#70C8A8",sound:"Hum!",   wave:"sine",    freq:[900,950,920],dur:0.5,  cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/TrochilusPolytmus.jpg/600px-TrochilusPolytmus.jpg"},
+  {name:"Macaw",     emoji:"🦜",color:"#3090D0",sound:"Screech!",wave:"saw",     freq:[900,1000,920],dur:0.7, cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Ara_macao_-on_a_small_island%2C_near_Carrillo%2C_Costa_Rica-8.jpg/600px-Ara_macao_-on_a_small_island%2C_near_Carrillo%2C_Costa_Rica-8.jpg"},
+  {name:"Cockatoo",  emoji:"🦜",color:"#F8F0D8",sound:"Squawk!", wave:"saw",     freq:[800,850,820],dur:0.7,  cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Sulphur-Crested_Cockatoo.jpg/600px-Sulphur-Crested_Cockatoo.jpg"},
+  {name:"Sparrow",   emoji:"🐦",color:"#C8A870",sound:"Chirp!",  wave:"sine",    freq:[1000,1100,1050],dur:0.35,cat:"Birds",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/House_sparrow04.jpg/600px-House_sparrow04.jpg"},
+  {name:"Ostrich",   emoji:"🐦",color:"#D4A040",sound:"Boom!",   wave:"saw",     freq:[80,70,75],   dur:1.5,  cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Ostrich_profile_Ol_Pejeta.jpg/600px-Ostrich_profile_Ol_Pejeta.jpg"},
+  {name:"Vulture",   emoji:"🦅",color:"#604830",sound:"Hiss!",   wave:"saw",     freq:[200,180,190],dur:1.0,  cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Hooded_vulture.jpg/600px-Hooded_vulture.jpg"},
+  {name:"Hawk",      emoji:"🦅",color:"#8B6000",sound:"Screech!",wave:"saw",     freq:[1000,1200,1050],dur:0.7,cat:"Birds",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Ferruginous_Hawk_In_Flight.jpg/600px-Ferruginous_Hawk_In_Flight.jpg"},
+  {name:"Seagull",   emoji:"🐦",color:"#E8E8E8",sound:"Screech!",wave:"saw",     freq:[900,1000,940],dur:0.6, cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Herring_gull_in_flight.jpg/600px-Herring_gull_in_flight.jpg"},
+  {name:"Kingfisher",emoji:"🐦",color:"#1070B8",sound:"Peep!",   wave:"sine",    freq:[1200,1400,1300],dur:0.35,cat:"Birds",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Ceryle_rudis%2C_male%2C_a.jpg/600px-Ceryle_rudis%2C_male%2C_a.jpg"},
+  {name:"Nightingale",emoji:"🐦",color:"#A07848",sound:"Song!",  wave:"sine",    freq:[1000,1200,1100],dur:0.6,cat:"Birds",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Luscinia_megarhynchos_-_Tircol.jpg/600px-Luscinia_megarhynchos_-_Tircol.jpg"},
+  {name:"Woodpecker",emoji:"🐦",color:"#C03030",sound:"Tap-tap!",wave:"square",  freq:[1000,1100,1000],dur:0.3,cat:"Birds",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Dendrocopos_major_-_Frauenstein_01.jpg/600px-Dendrocopos_major_-_Frauenstein_01.jpg"},
+  {name:"Budgie",    emoji:"🦜",color:"#70C870",sound:"Chitter!",wave:"sine",    freq:[1100,1200,1150],dur:0.4,cat:"Birds",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Budgerigar._Pix_Paw.jpg/600px-Budgerigar._Pix_Paw.jpg"},
+  {name:"Crane",     emoji:"🕊️",color:"#E0E8F0",sound:"Call!",   wave:"sine",    freq:[700,650,680],dur:0.9,  cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Grus_grus.jpg/600px-Grus_grus.jpg"},
+  {name:"Albatross", emoji:"🐦",color:"#D8E8F0",sound:"Call!",   wave:"saw",     freq:[500,450,480],dur:1.0,  cat:"Birds", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Diomedea_exulans_-_SE_Tasmania.jpg/600px-Diomedea_exulans_-_SE_Tasmania.jpg"},
+  // Insects
+  {name:"Bee",       emoji:"🐝",color:"#FFE135",sound:"Buzz!",   wave:"saw",     freq:[200,220,210],dur:0.8,  cat:"Insects",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Bees_on_honeycomb.jpg/600px-Bees_on_honeycomb.jpg"},
+  {name:"Cricket",   emoji:"🦗",color:"#78A850",sound:"Chirp!",  wave:"square",  freq:[3000,3200,3100],dur:0.3,cat:"Insects",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Acheta_domestica_-_Gryllus_domesticus_-_Cricket_(7344939952).jpg/600px-Acheta_domestica_-_Gryllus_domesticus_-_Cricket_(7344939952).jpg"},
+  {name:"Butterfly", emoji:"🦋",color:"#E090D8",sound:"Flutter!",wave:"sine",    freq:[600,700,640],dur:0.5,  cat:"Insects",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Monarch_butterfly_shiloh.jpg/600px-Monarch_butterfly_shiloh.jpg"},
+  {name:"Ladybug",   emoji:"🐞",color:"#E84040",sound:"Click!",  wave:"sine",    freq:[800,900,840],dur:0.3,  cat:"Insects",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Coccinella_magnifica01.jpg/600px-Coccinella_magnifica01.jpg"},
+  {name:"Dragonfly", emoji:"🪲",color:"#40B8D0",sound:"Whirr!",  wave:"saw",     freq:[500,550,520],dur:0.5,  cat:"Insects",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Dragonfly_Anax_imperator_male.jpg/600px-Dragonfly_Anax_imperator_male.jpg"},
+  {name:"Grasshopper",emoji:"🦗",color:"#88B840",sound:"Chirp!", wave:"square",  freq:[2800,3000,2900],dur:0.3,cat:"Insects",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Grasshopper_4_crop.jpg/600px-Grasshopper_4_crop.jpg"},
+  {name:"Firefly",   emoji:"🪲",color:"#D4F040",sound:"Buzz!",   wave:"sine",    freq:[400,450,420],dur:0.5,  cat:"Insects",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Firefly_in_the_Smokies.jpg/600px-Firefly_in_the_Smokies.jpg"},
+  {name:"Mosquito",  emoji:"🦟",color:"#A0A880",sound:"Whine!",  wave:"sine",    freq:[600,650,625],dur:0.8,  cat:"Insects",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Anopheles_albimanus_mosquito.jpg/600px-Anopheles_albimanus_mosquito.jpg"},
+  // Reptiles
+  {name:"Snake",     emoji:"🐍",color:"#7DAF5A",sound:"Hiss!",   wave:"saw",     freq:[300,280,290],dur:1.5,  cat:"Reptiles",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Ball_python_lucy.jpg/600px-Ball_python_lucy.jpg"},
+  {name:"Crocodile", emoji:"🐊",color:"#6B8E6B",sound:"Hiss!",   wave:"saw",     freq:[120,100,110],dur:1.2,  cat:"Reptiles",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Nile_crocodile_head.jpg/600px-Nile_crocodile_head.jpg"},
+  {name:"Lizard",    emoji:"🦎",color:"#80B060",sound:"Hiss!",   wave:"sine",    freq:[350,330,340],dur:0.8,  cat:"Reptiles",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Green_iguana_head_2009.jpg/600px-Green_iguana_head_2009.jpg"},
+  {name:"Gecko",     emoji:"🦎",color:"#90C878",sound:"Click!",  wave:"square",  freq:[700,800,750],dur:0.4,  cat:"Reptiles",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Tokay_Gecko.jpg/600px-Tokay_Gecko.jpg"},
+  {name:"Chameleon", emoji:"🦎",color:"#50A870",sound:"Hiss!",   wave:"sine",    freq:[380,360,370],dur:0.7,  cat:"Reptiles",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Panther_Chameleon.jpg/600px-Panther_Chameleon.jpg"},
+  {name:"Frog",      emoji:"🐸",color:"#90EE90",sound:"Ribbit!", wave:"square",  freq:[380,460,400],dur:0.7,  cat:"Reptiles",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Litoria_caerulea_white%27s_tree_frog.jpg/600px-Litoria_caerulea_white%27s_tree_frog.jpg"},
+  // Small
+  {name:"Hamster",   emoji:"🐹",color:"#F4C88A",sound:"Squeak!", wave:"sine",    freq:[1000,1100,1050],dur:0.35,cat:"Small",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Hamster_123.jpg/600px-Hamster_123.jpg"},
+  {name:"Hedgehog",  emoji:"🦔",color:"#C8A880",sound:"Snuffle!",wave:"sine",    freq:[600,650,620],dur:0.6,  cat:"Small", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Erinaceus_europaeus_LC0119.jpg/600px-Erinaceus_europaeus_LC0119.jpg"},
+  {name:"Squirrel",  emoji:"🐿️",color:"#C87840",sound:"Chitter!",wave:"square", freq:[800,900,850],dur:0.5,  cat:"Small", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Sciurus_vulgaris_with_cub.jpg/600px-Sciurus_vulgaris_with_cub.jpg"},
+  {name:"Otter",     emoji:"🦦",color:"#9A7060",sound:"Squeak!", wave:"sine",    freq:[900,950,920],dur:0.5,  cat:"Small", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Sea_otter_(Enhydra_lutris)_(19718975595).jpg/600px-Sea_otter_(Enhydra_lutris)_(19718975595).jpg"},
+  {name:"Mouse",     emoji:"🐭",color:"#D8C8D0",sound:"Squeak!", wave:"sine",    freq:[1100,1200,1150],dur:0.3,cat:"Small",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/House_mouse.jpg/600px-House_mouse.jpg"},
+  {name:"Platypus",  emoji:"🦆",color:"#987850",sound:"Growl!",  wave:"saw",     freq:[400,380,390],dur:0.7,  cat:"Small", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Platypus.jpg/600px-Platypus.jpg"},
+];
+
+const CATEGORIES = ["All","Farm","Wild","Ocean","Birds","Insects","Reptiles","Small"];
+
+// ── Audio ─────────────────────────────────────────────────────────────────────
+let audioCtx = null;
+function getCtx() {
+  if (!audioCtx || audioCtx.state === "closed") {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioCtx;
+}
+function playSound(animal) {
+  try {
+    const ctx = getCtx();
+    const go = () => {
+      const {freq, wave, dur} = animal;
+      const now = ctx.currentTime;
+      const makeVoice = (f, w, vol, delay=0) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = w === "saw" ? "sawtooth" : w;
+        osc.frequency.setValueAtTime(f[0], now+delay);
+        osc.frequency.linearRampToValueAtTime(f[1], now+delay+dur*0.4);
+        osc.frequency.linearRampToValueAtTime(f[2], now+delay+dur*0.85);
+        g.gain.setValueAtTime(0.001, now+delay);
+        g.gain.linearRampToValueAtTime(vol, now+delay+0.04);
+        g.gain.setValueAtTime(vol, now+delay+dur*0.6);
+        g.gain.exponentialRampToValueAtTime(0.001, now+delay+dur);
+        osc.connect(g); g.connect(ctx.destination);
+        osc.start(now+delay); osc.stop(now+delay+dur+0.05);
+      };
+      makeVoice(freq, wave, 0.4);
+      const big = ["Lion","Tiger","Bear","Elephant","Whale","Hippo","Cow","Moose","Bison","Polar Bear","Gorilla"];
+      if (big.includes(animal.name)) makeVoice([freq[0]*.5,freq[1]*.5,freq[2]*.5], "saw", 0.25);
+      const singers = ["Robin","Nightingale","Sparrow","Hummingbird","Budgie","Kingfisher"];
+      if (singers.includes(animal.name)) makeVoice([freq[0]*2,freq[1]*2,freq[2]*2], "sine", 0.15, 0.05);
+    };
+    if (ctx.state === "suspended") ctx.resume().then(go); else go();
+  } catch(e) { console.warn(e); }
+}
+
+// ── Fun facts ─────────────────────────────────────────────────────────────────
+const factCache = {};
+async function fetchFact(name) {
+  if (factCache[name]) return factCache[name];
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514", max_tokens:80,
+        system:"Write ONE fun fact about the animal for a toddler. Under 14 words. Simple vocabulary. End with '!'. Output only the fact.",
+        messages:[{role:"user",content:`Fun fact: ${name}`}]
+      })
+    });
+    const d = await r.json();
+    const t = d.content?.[0]?.text?.trim() || "";
+    factCache[name] = t;
+    return t;
+  } catch { return ""; }
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentCat = "All";
+let currentSearch = "";
+let popTimer = null;
+
+function getFiltered() {
+  return ANIMALS.filter(a => {
+    const inCat = currentCat === "All" || a.cat === currentCat;
+    const inSearch = a.name.toLowerCase().includes(currentSearch.toLowerCase());
+    return inCat && inSearch;
+  });
+}
+
+// ── DOM helpers ───────────────────────────────────────────────────────────────
+const gridView   = document.getElementById("grid-view");
+const detailView = document.getElementById("detail-view");
+const gridEl     = document.getElementById("grid");
+const pillsEl    = document.getElementById("pills");
+const searchEl   = document.getElementById("search");
+const detName    = document.getElementById("det-name");
+const detImg     = document.getElementById("det-img");
+const sndBtn     = document.getElementById("snd-btn");
+const factBox    = document.getElementById("fact-box");
+const backBtn    = document.getElementById("back-btn");
+
+function showPop(text) {
+  document.querySelectorAll(".pop").forEach(p => p.remove());
+  const el = document.createElement("div");
+  el.className = "pop"; el.textContent = text;
+  document.body.appendChild(el);
+  clearTimeout(popTimer);
+  popTimer = setTimeout(() => el.remove(), 1500);
+}
+
+function renderGrid() {
+  gridEl.innerHTML = "";
+  const list = getFiltered();
+  if (!list.length) {
+    const e = document.createElement("div");
+    e.className = "empty"; e.textContent = "No animals found 🙈";
+    gridEl.appendChild(e); return;
+  }
+  list.forEach(animal => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.style.background = `linear-gradient(145deg,${animal.color}dd,${animal.color}88)`;
+    card.innerHTML = `<div class="card-emoji">${animal.emoji}</div><div class="card-name">${animal.name}</div>`;
+    card.addEventListener("click", () => {
+      card.classList.add("bounce");
+      setTimeout(() => card.classList.remove("bounce"), 450);
+      playSound(animal);
+      showPop(animal.sound);
+      openDetail(animal);
+    });
+    gridEl.appendChild(card);
+  });
+}
+
+function renderPills() {
+  pillsEl.innerHTML = "";
+  CATEGORIES.forEach(c => {
+    const btn = document.createElement("button");
+    btn.className = "pill" + (c === currentCat ? " on" : "");
+    btn.textContent = c;
+    btn.addEventListener("click", () => {
+      currentCat = c;
+      renderPills(); renderGrid();
+    });
+    pillsEl.appendChild(btn);
+  });
+}
+
+function openDetail(animal) {
+  detName.textContent = animal.emoji + " " + animal.name;
+  detImg.src = animal.img;
+  detImg.onerror = () => { detImg.src = `https://placehold.co/600x380/f0e8d0/888?text=${encodeURIComponent(animal.emoji)}`; };
+  sndBtn.textContent = "🔊 " + animal.sound;
+  sndBtn.style.background = animal.color;
+  sndBtn.style.filter = "brightness(0.8) saturate(1.4)";
+  sndBtn.onclick = () => { playSound(animal); showPop(animal.sound); };
+  factBox.textContent = "✨ loading fun fact…";
+  gridView.classList.add("hidden");
+  detailView.classList.add("visible");
+  detailView.style.background = `linear-gradient(160deg,${animal.color}bb 0%,${animal.color}44 100%)`;
+  fetchFact(animal.name).then(f => { if(f) factBox.textContent = f; else factBox.textContent = ""; });
+}
+
+backBtn.addEventListener("click", () => {
+  detailView.classList.remove("visible");
+  gridView.classList.remove("hidden");
+});
+
+searchEl.addEventListener("input", e => {
+  currentSearch = e.target.value;
+  renderGrid();
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+renderPills();
+renderGrid();
+
+// Service worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>
